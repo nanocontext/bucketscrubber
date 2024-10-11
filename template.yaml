@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Scrub objects from an S3 bucket
+
+Resources:
+  BucketScrubberAccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub "bucketscrubber-s3-policy"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+              - s3:PutObjectTagging
+              - s3:PutObjectVersionTagging
+              - s3:GetObjectTagging
+              - s3:GetObjectVersionTagging
+            Resource: arn:aws:s3:::*
+
+  BucketScrubberRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "bucket-scrubber-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /project/
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AWSLambda_FullAccess"
+        - !Ref BucketScrubberAccessPolicy
+
+  # Empty an S3 bucket
+  BucketScrubberFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: BucketScrubber
+      Handler: llc.nanocontext.bucketscrubber.BucketScrubberHandler
+      CodeUri: emptyS3Code
+      Description: Scrubs objects from an S3 bucket
+      Timeout: 900
+      MemorySize: 8192
+      Runtime: java11
+      Architectures:
+        - x86_64
+      Role: !GetAtt BucketScrubberRole.Arn
+
+Outputs:
+  EmptyS3Function:
+    Description: Bucket Scrubber Lambda Function ARN
+    Value: !GetAtt BucketScrubberFunction.Arn

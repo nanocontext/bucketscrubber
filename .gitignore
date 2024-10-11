@@ -1,0 +1,6 @@
+/.aws-sam/
+/.idea/
+/emptyS3Code/.idea/
+/emptyS3Code/target/
+/.DS_Store
+**/.DS_Store
